@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: edumed-api
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://edumed_user:edumed_password@db:5432/edumed_db
+      - PORT=4000
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: edumed-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=edumed_db
+      - POSTGRES_USER=edumed_user
+      - POSTGRES_PASSWORD=edumed_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    restart: unless-stopped
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: edumed-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@edumed.local
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  postgres-data:
+  pgadmin-data:
